@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# set locale
+export LANG=en_US.UTF-8
+
+dir_count=0
+file_count=0
+
+# Updated solution
+# Also, time python2 tester_3.pyc shows real time 0m0.173s
+# What's wrong with the autograding workflow?
+
+go_through() { # step down through the tree (starting at leaf)
+	dir_count=$(($dir_count + 1)) # counting start leaf
+	local root_leaf=$1 # leaf name
+	local prefix=$2 # weird ASCII graphics shit, technically not an arrow
+
+	local leaves=($root_leaf/*) # array of leaves
+	local leaves_count=${#leaves[@]} # this bullshit is len(leaves)
+
+	for i in "${!leaves[@]}"; do # iterate through the array
+		local leaf=${leaves[$i]} # get element
+		leaf=${leaf##*/} # delete nested leaves names (i. e, get only the current leaf name)
+
+		# I will kill anyone who says anything about Unicode code points RIGHT ON THE FUCKING SPOT
+		local leaf_nester="│   " # nesting denominator
+		local arrow="├── " # intra-directory middle leaf
+
+		if [ $i -eq $((leaves_count - 1)) ]; then 
+			arrow="└── " # intra-directory end leaf
+			leaf_nester="    " # nesting denominator (intra-directory)
+		fi
+
+		echo "${prefix}${arrow}$leaf"
+		[ -d "$root_leaf/$leaf" ] && go_through "$root_leaf/$leaf" "${prefix}$leaf_nester" || file_count=$((file_count + 1)) # and-list goes into or-list
+		# if this leaf has nested directories, go_through them, else add a file
+		# This is recursive, and i don't give a shit about inefficiency!
+		# Traversing tree structures recursively is the easiest way to implement
+	done
+}
+
+root="." # default root
+[ "$#" -ne 0 ] && root="$1" # if we have an argument, use it
+echo $root
+
+go_through $root "" # start going through the FS hierarchy
+echo # newline
+[ "${dir_count: -1}" = "2" ] && printf "$(($dir_count - 1)) directory, " || printf "$(($dir_count - 1)) directories, " # Stupid directory(ies) thing
+# "2" is used due to -1 shift in output (since go_through leaves an extra directory)
+[ "$file_count" -eq "1" ] && echo "$file_count file" || echo "$file_count files" # Stupid file(s) thing
